@@ -87,7 +87,10 @@ func (s *Server) handleAddRacer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.writeJSON(w, http.StatusCreated, envelope{"racer": newRacer})
+	racerResponse := toRacerResponse(newRacer)
+
+	s.writeJSON(w, http.StatusCreated, envelope{"racer": racerResponse})
+	//s.writeJSON(w, http.StatusCreated, envelope{"racer": newRacer})
 }
 
 // handleGetRacersForEvent fetches all racers associated with a specific event.
@@ -115,7 +118,11 @@ func (s *Server) handleGetRacersForEvent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	s.writeJSON(w, http.StatusOK, envelope{"racers": racers})
+	racerResponses := toRacerResponseList(racers)
+
+	s.writeJSON(w, http.StatusOK, envelope{"racers": racerResponses})
+
+	//s.writeJSON(w, http.StatusOK, envelope{"racers": racers})
 }
 
 // handleUpdateRacerColor handles requests to change a racer's color.

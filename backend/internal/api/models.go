@@ -46,5 +46,47 @@ func toUserResponseList(users []database.User) []UserResponse {
 	return responseList
 }
 
-// NOTE: You would create other response DTOs here as needed, for example,
-// a `GroupResponse` that includes a list of `UserResponse` members.
+// RacerResponse is the DTO for a racer. It ensures that nullable fields
+// are correctly represented as a string or `null` in the JSON response.
+type RacerResponse struct {
+	ID             int64   `json:"id"`
+	EventID        int64   `json:"eventId"`
+	UploaderUserID int64   `json:"uploaderUserId"`
+	RacerName      string  `json:"racerName"`
+	TrackColor     string  `json:"trackColor"`
+	TrackAvatarURL *string `json:"trackAvatarUrl"`
+	GpxFilePath    *string `json:"gpxFilePath"`
+}
+
+// toRacerResponse is a "mapper" function that converts our internal database model
+// into the public-facing RacerResponse DTO.
+func toRacerResponse(racer *database.Racer) RacerResponse {
+	var avatarURL *string
+	if racer.TrackAvatarURL.Valid {
+		avatarURL = &racer.TrackAvatarURL.String
+	}
+
+	var gpxPath *string
+	if racer.GpxFilePath.Valid {
+		gpxPath = &racer.GpxFilePath.String
+	}
+
+	return RacerResponse{
+		ID:             racer.ID,
+		EventID:        racer.EventID,
+		UploaderUserID: racer.UploaderUserID,
+		RacerName:      racer.RacerName,
+		TrackColor:     racer.TrackColor,
+		TrackAvatarURL: avatarURL,
+		GpxFilePath:    gpxPath,
+	}
+}
+
+// toRacerResponseList is a helper to convert a slice of database racers.
+func toRacerResponseList(racers []*database.Racer) []RacerResponse {
+	responseList := make([]RacerResponse, len(racers))
+	for i, racer := range racers {
+		responseList[i] = toRacerResponse(racer)
+	}
+	return responseList
+}
