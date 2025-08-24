@@ -32,7 +32,6 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
   const markersRef = useRef<{ [racerId: number]: Marker }>({});
   const trackBoundsRef = useRef<LngLatBounds | null>(null);
   const lastIndexRef = useRef<{ [racerId: number]: number }>({});
-  const isInitialLoadRef = useRef(true);
   
   const [selectedRacerId, setSelectedRacerId] = useState<number | null>(null);
   const popupRef = useRef<Popup | null>(null);
