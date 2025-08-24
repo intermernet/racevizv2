@@ -199,3 +199,14 @@ export function calculateRacePlacing(allPaths: TrackPath[], targetTime: Date): R
     rank: index + 1,
   }));
 }
+
+/**
+ * Converts a heading in degrees to a cardinal direction string.
+ * @param heading The heading in degrees (0-360).
+ * @returns A cardinal direction string (e.g., "N", "NE", "E", "SE", "S", "SW", "W", "NW").
+ */
+export function getCardinalDirection(heading: number): string {
+  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const index = Math.round(heading / 45) % 8;
+  return directions[index];
+}
