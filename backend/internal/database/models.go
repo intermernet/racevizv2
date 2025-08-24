@@ -27,13 +27,13 @@ type Group struct {
 
 // Event represents a record in an 'events' table within a specific group's database.
 type Event struct {
-	ID            int64     `json:"id"`
-	GroupID       int64     `json:"groupId"` // Foreign key to the group this event belongs to
-	Name          string    `json:"name"`
-	StartDate     time.Time `json:"startDate"`
-	EndDate       time.Time `json:"endDate"`
-	EventType     string    `json:"eventType"` // Can be 'race' or 'time_trial'
-	CreatorUserID int64     `json:"creatorUserId"`
+	ID            int64        `json:"id"`
+	GroupID       int64        `json:"groupId"` // Foreign key to the group this event belongs to
+	Name          string       `json:"name"`
+	StartDate     sql.NullTime `json:"startDate"`
+	EndDate       sql.NullTime `json:"endDate"`
+	EventType     string       `json:"eventType"` // Can be 'race' or 'time_trial'
+	CreatorUserID int64        `json:"creatorUserId"`
 }
 
 // Racer represents a record in a 'racers' table within a group's database.

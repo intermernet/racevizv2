@@ -49,10 +49,17 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
             if (lastPointTime > maxTime) maxTime = lastPointTime;
         }
     });
-    return {
-        startTime: minTime === Infinity ? new Date(eventData.event.startDate) : new Date(minTime),
-        endTime: maxTime === -Infinity ? new Date(eventData.event.endDate) : new Date(maxTime),
-    };
+    const sTime = minTime === Infinity
+      // If eventData.event.startDate is truthy (not null), use it. Otherwise, use now as a safe default.
+      ? (eventData.event.startDate ? new Date(eventData.event.startDate) : new Date())
+      : new Date(minTime);
+
+    const eTime = maxTime === -Infinity
+      // Do the same for the end date, falling back to the calculated start time if needed.
+      ? (eventData.event.endDate ? new Date(eventData.event.endDate) : sTime)
+      : new Date(maxTime);
+      
+    return { startTime: sTime, endTime: eTime };
   }, [eventData]);
 
   const {

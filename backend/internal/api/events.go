@@ -21,10 +21,11 @@ import (
 // --- Structs for JSON Payloads & Responses ---
 
 // createEventPayload defines the structure for creating a new event.
+// StartDate and EndDate are optional, used only for 'race' type events.
 type createEventPayload struct {
 	Name      string `json:"name"`
-	StartDate string `json:"startDate"` // e.g., "2025-08-20T10:00:00Z"
-	EndDate   string `json:"endDate"`   // Optional, defaults to StartDate
+	StartDate string `json:"startDate,omitempty"`
+	EndDate   string `json:"endDate,omitempty"`
 	EventType string `json:"eventType"` // "race" or "time_trial"
 }
 
@@ -36,7 +37,7 @@ type addRacerPayload struct {
 // publicEventDataResponse is the DTO for the public-facing map data.
 type publicEventDataResponse struct {
 	Event database.Event  `json:"event"`
-	Users []UserResponse  `json:"users"` // Uses the clean UserResponse DTO
+	Users []UserResponse  `json:"users"`
 	Paths []gpx.TrackPath `json:"paths"`
 }
 
@@ -75,6 +76,7 @@ func (s *Server) handleGetEventDetails(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleCreateEvent handles the creation of a new event within a group.
+// It now correctly handles date logic based on the event type.
 func (s *Server) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
 	creatorID, err := s.getUserIDFromContext(r)
 	if err != nil {
@@ -88,7 +90,6 @@ func (s *Server) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Authorization: Check if the user is a member of the group.
 	isMember, err := s.db.IsUserGroupMember(s.db.GetMainDB(), groupID, creatorID)
 	if err != nil || !isMember {
 		s.errorJSON(w, errors.New("forbidden: you are not a member of this group"), http.StatusForbidden)
@@ -101,29 +102,37 @@ func (s *Server) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Input Validation
-	if payload.Name == "" || payload.StartDate == "" || payload.EventType == "" {
-		s.errorJSON(w, errors.New("name, startDate, and eventType are required"), http.StatusBadRequest)
-		return
-	}
-	if payload.EventType != "race" && payload.EventType != "time_trial" {
-		s.errorJSON(w, errors.New("eventType must be 'race' or 'time_trial'"), http.StatusBadRequest)
+	var startDate, endDate *time.Time
+
+	if payload.Name == "" || payload.EventType == "" {
+		s.errorJSON(w, errors.New("name and eventType are required"), http.StatusBadRequest)
 		return
 	}
 
-	startDate, err := time.Parse(time.RFC3339, payload.StartDate)
-	if err != nil {
-		s.errorJSON(w, errors.New("invalid startDate format, use RFC3339 (e.g., 2025-08-20T10:00:00Z)"), http.StatusBadRequest)
-		return
-	}
-
-	endDate := startDate
-	if payload.EndDate != "" {
-		endDate, err = time.Parse(time.RFC3339, payload.EndDate)
-		if err != nil || endDate.Before(startDate) {
-			s.errorJSON(w, errors.New("endDate must be after startDate"), http.StatusBadRequest)
+	if payload.EventType == "race" {
+		if payload.StartDate == "" {
+			s.errorJSON(w, errors.New("startDate is required for race events"), http.StatusBadRequest)
 			return
 		}
+		parsedStart, err := time.Parse(time.RFC3339, payload.StartDate)
+		if err != nil {
+			s.errorJSON(w, errors.New("invalid startDate format, use RFC3339"), http.StatusBadRequest)
+			return
+		}
+		startDate = &parsedStart
+
+		parsedEnd := parsedStart
+		if payload.EndDate != "" {
+			parsedEnd, err = time.Parse(time.RFC3339, payload.EndDate)
+			if err != nil || parsedEnd.Before(parsedStart) {
+				s.errorJSON(w, errors.New("endDate must be after startDate"), http.StatusBadRequest)
+				return
+			}
+		}
+		endDate = &parsedEnd
+	} else if payload.EventType != "time_trial" {
+		s.errorJSON(w, errors.New("eventType must be 'race' or 'time_trial'"), http.StatusBadRequest)
+		return
 	}
 
 	groupDB, err := s.db.GetGroupDB(groupID)
@@ -132,7 +141,6 @@ func (s *Server) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Pass the groupID to the database function to correctly associate the event.
 	newEvent, err := s.db.CreateEvent(groupDB, groupID, payload.Name, startDate, endDate, payload.EventType, creatorID)
 	if err != nil {
 		s.errorJSON(w, errors.New("failed to create event"), http.StatusInternalServerError)
@@ -159,7 +167,6 @@ func (s *Server) handleDeleteEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Authorization: Check if deleter is the event creator.
 	event, err := s.db.GetEventByID(groupDB, eventID)
 	if err != nil {
 		s.errorJSON(w, errors.New("event not found"), http.StatusNotFound)
@@ -170,25 +177,21 @@ func (s *Server) handleDeleteEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Get a list of all GPX files associated with the event BEFORE deleting records.
 	racers, err := s.db.GetRacersByEventID(groupDB, eventID)
 	if err != nil {
 		s.errorJSON(w, errors.New("could not retrieve racers for cleanup"), http.StatusInternalServerError)
 		return
 	}
 
-	// 2. Delete the event and associated racers from the database. (CASCADE handles racers)
 	if err := s.db.DeleteEvent(groupDB, eventID); err != nil {
 		s.errorJSON(w, errors.New("failed to delete event records"), http.StatusInternalServerError)
 		return
 	}
 
-	// 3. Delete the actual GPX files from the filesystem.
 	for _, racer := range racers {
 		if racer.GpxFilePath.Valid {
 			filePath := filepath.Join(s.config.GpxPath, racer.GpxFilePath.String)
 			if err := os.Remove(filePath); err != nil {
-				// Log the error but don't fail the request, as the DB records are already gone.
 				log.Printf("WARN: failed to delete gpx file %s: %v", filePath, err)
 			}
 		}
@@ -198,7 +201,6 @@ func (s *Server) handleDeleteEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleGetPublicEventData provides all necessary data for the map view.
-// This is a public, unauthenticated endpoint.
 func (s *Server) handleGetPublicEventData(w http.ResponseWriter, r *http.Request) {
 	groupID, err := strconv.ParseInt(chi.URLParam(r, "groupID"), 10, 64)
 	if err != nil {
@@ -248,13 +250,13 @@ func (s *Server) handleGetPublicEventData(w http.ResponseWriter, r *http.Request
 	var trackPaths []gpx.TrackPath
 	for _, racer := range racers {
 		if !racer.GpxFilePath.Valid {
-			continue // Skip racers with no uploaded track
+			continue
 		}
 		fullPath := filepath.Join(s.config.GpxPath, racer.GpxFilePath.String)
 		processedPath, err := gpx.ProcessFile(fullPath, event.EventType, racer.ID)
 		if err != nil {
 			log.Printf("WARN: could not process GPX file %s for event %d: %v", racer.GpxFilePath.String, event.ID, err)
-			continue // Skip corrupted or unreadable files
+			continue
 		}
 		if processedPath != nil {
 			if color, ok := racerColorMap[racer.ID]; ok {

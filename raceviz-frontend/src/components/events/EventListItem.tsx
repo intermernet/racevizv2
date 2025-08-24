@@ -12,11 +12,13 @@ interface EventListItemProps {
 
 export const EventListItem: React.FC<EventListItemProps> = ({ event, onDelete, currentUserId }) => {
   // A simple date formatter
-  const formattedDate = new Date(event.startDate).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const formattedDate = event.startDate
+    ? new Date(event.startDate).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    : 'No date set'; // This will be shown for Time Trials
 
   const handleDelete = () => {
     // The confirmation dialog provides a layer of safety for the user.

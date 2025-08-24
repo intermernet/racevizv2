@@ -250,7 +250,7 @@ func (s *Service) UpdateInvitationStatus(tx *sql.Tx, invitationID int64, status 
 
 // --- Event & Racer Queries (on groupDB) ---
 
-func (s *Service) CreateEvent(db DBorTx, groupID int64, name string, start, end time.Time, eventType string, creatorID int64) (*Event, error) {
+func (s *Service) CreateEvent(db DBorTx, groupID int64, name string, start, end *time.Time, eventType string, creatorID int64) (*Event, error) {
 	query := `INSERT INTO events (group_id, name, start_date, end_date, event_type, creator_user_id) VALUES (?, ?, ?, ?, ?, ?);`
 	res, err := db.Exec(query, groupID, name, start, end, eventType, creatorID)
 	if err != nil {

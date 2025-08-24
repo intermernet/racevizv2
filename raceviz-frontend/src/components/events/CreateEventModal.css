@@ -28,6 +28,12 @@
     margin-bottom: 1rem;
 }
 
+.date-input-group {
+  max-height: 100px; /* An arbitrary large height */
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out, margin-bottom 0.3s ease-in-out;
+}
+
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;

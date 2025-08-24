@@ -60,8 +60,8 @@ export interface RaceEvent {
   id: number;
   groupId: number;
   name: string;
-  startDate: string; // ISO 8601 format date string
-  endDate: string; // ISO 8601 format date string
+  startDate: string | null; // ISO 8601 format date string
+  endDate: string | null;  // ISO 8601 format date string
   eventType: 'race' | 'time_trial';
   creatorUserId: number;
 }

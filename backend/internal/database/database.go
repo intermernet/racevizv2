@@ -216,8 +216,8 @@ func (s *Service) InitGroupDB(groupID int64) error {
 			id INTEGER PRIMARY KEY,
 			group_id INTEGER NOT NULL,
 			name TEXT NOT NULL,
-			start_date DATETIME NOT NULL,
-			end_date DATETIME NOT NULL,
+			start_date DATETIME,
+			end_date DATETIME,
 			event_type TEXT NOT NULL, -- 'race' or 'time_trial'
 			creator_user_id INTEGER NOT NULL
 		);`)
