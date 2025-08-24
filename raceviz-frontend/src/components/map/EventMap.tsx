@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 // We import `Map` as `MapLibreMap` to avoid conflicting with the built-in JS `Map` data structure.
 import { Map as MapLibreMap, Marker, LngLatBounds, NavigationControl, Popup } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -56,67 +56,15 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
     };
   }, [eventData]);
 
-  // The high-performance animation frame handler.
-  const handleAnimationFrame = useCallback((newTime: Date) => {
-    if (!eventData) return;
-    
-    // 1. Update all racer marker positions imperatively.
-    for (const path of eventData.paths) {
-      const marker = markersRef.current[path.racerId];
-      if (!marker) continue;
-      const lastIndex = lastIndexRef.current[path.racerId] || 0;
-      const positionResult = getPositionAtTime(path, newTime, lastIndex);
-      if (positionResult) {
-        marker.setLngLat([positionResult.lon, positionResult.lat]);
-        lastIndexRef.current[path.racerId] = positionResult.foundIndex;
-      }
-    }
-    
-    // 2. If a popup is open, update its position and content imperatively.
-    if (selectedRacerId !== null && popupRef.current) {
-        const selectedPath = eventData.paths.find(p => p.racerId === selectedRacerId);
-        const racerProfile = eventData.users.find(u => u.id === selectedRacerId);
-        if (!selectedPath || !racerProfile) return;
-
-        const lastIndex = lastIndexRef.current[selectedRacerId] || 0;
-        const posResult = getPositionAtTime(selectedPath, newTime, lastIndex);
-        if (!posResult || posResult.foundIndex >= selectedPath.points.length - 1) {
-            // Hide popup if racer has finished by removing it from the map.
-            if(popupRef.current) popupRef.current.remove();
-            popupRef.current = null;
-            setSelectedRacerId(null);
-            return;
-        }
-        
-        const { speedKph, heading } = calculateSpeedAndHeading(
-            selectedPath.points[posResult.foundIndex],
-            selectedPath.points[posResult.foundIndex + 1]
-        );
-        const placings = calculateRacePlacing(eventData.paths, newTime);
-        const rank = placings.find(p => p.racerId === selectedRacerId)?.rank;
-        const totalRacers = eventData.paths.length;
-
-        const popupHTML = `
-          <div class="racer-popup">
-            <div class="popup-header" style="background-color: ${selectedPath.trackColor};">${racerProfile.username}</div>
-            <div class="popup-content">
-              <div><strong>Speed:</strong> ${speedKph.toFixed(1)} km/h</div>
-              <div><strong>Heading:</strong> ${heading.toFixed(0)}° (${getCardinalDirection(heading)})</div>
-              <div><strong>Position:</strong> ${rank || 'N/A'} / ${totalRacers}</div>
-            </div>
-          </div>`;
-        
-        popupRef.current.setLngLat([posResult.lon, posResult.lat]);
-        popupRef.current.setHTML(popupHTML);
-    }
-  }, [eventData, selectedRacerId]);
-
-  // The hook now receives our high-performance callback.
-  const { isPlaying, speed, progress, togglePlayPause, setSpeed, scrubTo } = useRaceAnimation({
-    startTime,
-    endTime,
-    onFrame: handleAnimationFrame,
-  });
+  const {
+    currentTime,
+    isPlaying,
+    speed,
+    progress,
+    togglePlayPause,
+    setSpeed,
+    scrubTo,
+  } = useRaceAnimation({ startTime, endTime });
 
   // --- EFFECT 1: INITIALIZE THE MAP INSTANCE (RUNS ONLY ONCE) ---
   useEffect(() => {
@@ -227,7 +175,61 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
     updateMapStyle();
   }, [Map, mapStyle]);
 
-  // --- EFFECT 4: MANAGE POPUP CREATION/DESTRUCTION ---
+  // --- EFFECT 4: UNIFIED ANIMATION FOR MARKERS AND POPUPS ---
+  useEffect(() => {
+    if (!eventData) return;
+
+    // 1. Update all racer marker positions
+    for (const path of eventData.paths) {
+      const marker = markersRef.current[path.racerId];
+      if (!marker) continue;
+      const lastIndex = lastIndexRef.current[path.racerId] || 0;
+      const positionResult = getPositionAtTime(path, currentTime, lastIndex);
+      if (positionResult) {
+        marker.setLngLat([positionResult.lon, positionResult.lat]);
+        lastIndexRef.current[path.racerId] = positionResult.foundIndex;
+      }
+    }
+    
+    // 2. If a popup is open, update its position and content
+    if (selectedRacerId !== null && popupRef.current) {
+        const selectedPath = eventData.paths.find(p => p.racerId === selectedRacerId);
+        const racerProfile = eventData.users.find(u => u.id === selectedRacerId);
+        if (!selectedPath || !racerProfile) return;
+
+        const lastIndex = lastIndexRef.current[selectedRacerId] || 0;
+        const posResult = getPositionAtTime(selectedPath, currentTime, lastIndex);
+        if (!posResult || posResult.foundIndex >= selectedPath.points.length - 1) {
+            if (popupRef.current) popupRef.current.remove();
+            popupRef.current = null;
+            setSelectedRacerId(null);
+            return;
+        }
+        
+        const { speedKph, heading } = calculateSpeedAndHeading(
+            selectedPath.points[posResult.foundIndex],
+            selectedPath.points[posResult.foundIndex + 1]
+        );
+        const placings = calculateRacePlacing(eventData.paths, currentTime);
+        const rank = placings.find(p => p.racerId === selectedRacerId)?.rank;
+        const totalRacers = eventData.paths.length;
+
+        const popupHTML = `
+          <div class="racer-popup">
+            <div class="popup-header" style="background-color: ${selectedPath.trackColor};">${racerProfile.username}</div>
+            <div class="popup-content">
+              <div><strong>Speed:</strong> ${speedKph.toFixed(1)} km/h</div>
+              <div><strong>Heading:</strong> ${heading.toFixed(0)}° (${getCardinalDirection(heading)})</div>
+              <div><strong>Position:</strong> ${rank || 'N/A'} / ${totalRacers}</div>
+            </div>
+          </div>`;
+        
+        popupRef.current.setLngLat([posResult.lon, posResult.lat]);
+        popupRef.current.setHTML(popupHTML);
+    }
+  }, [currentTime, eventData, selectedRacerId]);
+
+  // --- EFFECT 5: MANAGE POPUP CREATION/DESTRUCTION ---
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
