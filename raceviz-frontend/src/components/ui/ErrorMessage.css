@@ -1,0 +1,8 @@
+.error-container {
+  color: #ffb8b8;
+  background-color: #4d2323;
+  border: 1px solid #c0392b;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+}

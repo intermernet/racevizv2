@@ -1,0 +1,26 @@
+.group-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #333;
+  border-radius: 5px;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.group-list-item:hover {
+  background-color: #444;
+  transform: translateY(-2px);
+}
+
+.group-info h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.group-arrow {
+  font-size: 1.5em;
+  color: var(--primary-color);
+}

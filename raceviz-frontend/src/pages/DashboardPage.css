@@ -1,0 +1,28 @@
+.dashboard-container {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: left;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-header h1 {
+  margin: 0;
+  font-size: 2em;
+}
+
+.error-message {
+    color: #ff6b6b;
+    background-color: #4d2323;
+    padding: 1rem;
+    border-radius: 8px;
+}

@@ -1,0 +1,45 @@
+.homepage-container {
+  width: 100%;
+  padding: 1rem;
+}
+
+/* Styles for the unauthenticated view (when AuthForm is shown) */
+.auth-view-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh; /* Ensures it's centered vertically on the screen */
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-header h1 {
+  margin-bottom: 0.5rem;
+  font-size: 3em;
+  color: #fff;
+}
+
+.auth-header p {
+  font-size: 1.2em;
+  color: #ccc;
+}
+
+.authenticated-view {
+  width: 100%; /* Take full width of the viewport */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex-grow: 1;
+  width: 100%;
+  max-width: 1200px; /* Max width for content area */
+  margin: 0 auto;
+  padding: 2rem;
+  box-sizing: border-box;
+}

@@ -1,0 +1,17 @@
+.member-list-card {
+  background-color: var(--card-background);
+  border-radius: 8px;
+  padding: 0.5rem 1.5rem;
+}
+
+.member-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.no-members-message {
+    padding: 2rem;
+    text-align: center;
+    color: #888;
+}

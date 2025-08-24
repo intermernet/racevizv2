@@ -1,0 +1,55 @@
+/* src/components/racers/RacerList.css */
+
+.racer-list-wrapper {
+  background-color: var(--card-background);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.add-racer-form {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.add-racer-form input {
+  flex-grow: 1;
+  padding: 0.75rem;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  background-color: #333;
+  color: var(--text-color);
+  font-size: 1em;
+}
+
+.add-racer-form button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap; /* Prevents text wrapping */
+  transition: background-color 0.2s;
+}
+
+.add-racer-form button:hover:not(:disabled) {
+  background-color: #535bf2;
+}
+
+.add-racer-form button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.racer-list {
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
+}
+
+.no-racers-message {
+    padding: 2rem;
+    text-align: center;
+    color: #888;
+}

@@ -1,0 +1,56 @@
+/* src/pages/GroupPage.css */
+
+.group-page-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.back-link {
+  color: #ccc;
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-block;
+  margin-bottom: 1.5rem;
+}
+
+.group-page-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.group-page-header h1 {
+  margin: 0;
+  font-size: 2.8em;
+}
+
+/* Two-column layout for main content */
+.group-page-content {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+}
+
+.content-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.events-column {
+  flex: 2; /* Events column takes up 2/3 of the space */
+  min-width: 0; /* Prevents flexbox overflow issues */
+}
+
+.members-column {
+  flex: 1; /* Members column takes up 1/3 of the space */
+  min-width: 0;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 992px) {
+  .group-page-content {
+    flex-direction: column-reverse; /* Show members below events on smaller screens */
+  }
+}

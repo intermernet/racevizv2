@@ -1,0 +1,33 @@
+.group-details-container {
+  margin-top: 2rem;
+  width: 100%;
+}
+
+.group-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.group-details-header h2 {
+  margin: 0;
+  font-size: 1.8em;
+}
+
+.invite-member-btn {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.invite-member-btn:hover {
+  background-color: #229954;
+}

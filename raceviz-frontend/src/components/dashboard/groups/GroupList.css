@@ -1,0 +1,43 @@
+.group-list-container {
+    background-color: var(--card-background);
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.group-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.group-list-header h2 {
+    margin: 0;
+}
+
+.create-group-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.create-group-btn:hover {
+    background-color: #535bf2;
+}
+
+.group-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.no-groups-message {
+    color: #888;
+    text-align: center;
+    padding: 2rem 0;
+}

@@ -1,0 +1,86 @@
+.event-card {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.event-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.event-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.event-card-header h3 {
+  margin: 0;
+  font-size: 1.4em;
+  line-height: 1.2;
+}
+
+.event-type-badge {
+    font-size: 0.75em;
+    font-weight: bold;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    text-transform: capitalize;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+}
+
+.event-type-badge.race {
+    background-color: #2980b9;
+    color: white;
+}
+
+.event-type-badge.time_trial {
+    background-color: #f39c12;
+    color: #333;
+}
+
+.event-date {
+  color: #aaa;
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+}
+
+.event-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  border: none;
+  border-radius: 5px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn.view-map {
+  background-color: var(--primary-color);
+  color: white;
+}
+.action-btn.manage {
+  background-color: #34495e;
+  color: white;
+}
+.action-btn.delete {
+  background-color: #4d2323;
+  color: #ffb8b8;
+}
+
+.action-btn:hover {
+    filter: brightness(1.2);
+}

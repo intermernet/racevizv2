@@ -1,0 +1,41 @@
+.map-page-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--background-color);
+    padding: 0;
+    margin: 0;
+    max-width: none;
+}
+
+.map-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    background-color: var(--card-background);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.map-page-header a {
+    color: #ccc;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.map-page-header h1 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+/* Placeholder to keep title centered */
+.header-placeholder {
+    width: 100px; /* Approx width of the back link */
+}
+
+.map-content {
+    flex-grow: 1;
+    position: relative;
+}

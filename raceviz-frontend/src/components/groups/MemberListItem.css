@@ -1,0 +1,55 @@
+.member-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.member-list-item:last-child {
+  border-bottom: none;
+}
+
+.member-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.member-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.member-name {
+  font-weight: 500;
+}
+
+.member-badge {
+  font-size: 0.75em;
+  font-weight: bold;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  color: white;
+}
+
+.creator-badge {
+  background-color: var(--primary-color);
+}
+
+.remove-member-btn {
+  background-color: transparent;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+  border-radius: 5px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-member-btn:hover {
+  background-color: #c0392b;
+  color: white;
+}

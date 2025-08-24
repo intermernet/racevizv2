@@ -1,0 +1,34 @@
+/* src/pages/ManageRacersPage.css */
+
+.manage-racers-container {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.back-link {
+  color: #ccc;
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-block;
+  margin-bottom: 1.5rem;
+}
+
+.manage-racers-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.manage-racers-header h1 {
+  margin: 0;
+  font-size: 2.8em;
+}
+
+.manage-racers-header h2 {
+    margin: 0.5rem 0 0;
+    font-size: 1.5em;
+    color: #aaa;
+    font-weight: 400;
+}

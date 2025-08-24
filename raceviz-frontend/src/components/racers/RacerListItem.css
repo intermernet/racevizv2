@@ -1,0 +1,73 @@
+/* src/components/racers/RacerListItem.css */
+
+.racer-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s;
+}
+
+.racer-list-item:last-child {
+  border-bottom: none;
+}
+
+.racer-list-item:hover {
+    background-color: #2a2a2a;
+}
+
+.racer-name {
+  font-weight: 500;
+  font-size: 1.1em;
+}
+
+.racer-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.gpx-status {
+  font-size: 0.85em;
+  font-weight: bold;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  min-width: 80px; /* Give them a consistent width */
+  text-align: center;
+}
+
+.gpx-status.uploaded {
+  background-color: #27ae60;
+  color: white;
+}
+
+.gpx-status.missing {
+  background-color: #7f8c8d;
+  color: #ecf0f1;
+}
+
+.racer-status-actions button {
+  background-color: #4a4a4a;
+  color: #eee;
+  border: none;
+  border-radius: 5px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.racer-status-actions button:hover {
+  background-color: #5a5a5a;
+}
+
+.racer-status-actions button.delete {
+    background-color: #4d2323;
+    color: #ffb8b8;
+}
+
+.racer-status-actions button.delete:hover {
+    background-color: #c0392b;
+    color: white;
+}
