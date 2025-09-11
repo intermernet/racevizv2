@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 // We import `Map` as `MapLibreMap` to avoid conflicting with the built-in JS `Map` data structure.
-import { Map as MapLibreMap, LngLatBounds, NavigationControl, Popup, type LayerSpecification } from 'maplibre-gl';
+import { Map as MapLibreMap, LngLatBounds, NavigationControl, Popup } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 // Import shared types and utility functions
@@ -24,12 +24,6 @@ const RACEVIZ_METADATA_KEY = 'raceviz-layer';
 interface EventMapProps {
   eventData: PublicEventData;
 }
-
-// Create a new type that intersects LayerSpecification with our custom metadata.
-// This is the correct way to add properties to a union type.
-type RaceVizLayerSpecification = LayerSpecification & {
-  metadata?: { [key: string]: any };
-};
 
 export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
