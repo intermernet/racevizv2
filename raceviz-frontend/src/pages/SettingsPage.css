@@ -1,0 +1,51 @@
+.settings-page-container {
+  display: flex;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.settings-content {
+  flex-grow: 1;
+}
+
+.settings-sidebar {
+  flex-shrink: 0;
+  width: 200px;
+}
+
+.settings-sidebar nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.settings-sidebar nav a,
+.settings-sidebar nav button.back-link {
+  display: block;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+  color: var(--text-color-secondary);
+  border-radius: 5px;
+  transition: background-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  background: none;
+  border: none;
+  font-size: 1em;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.settings-sidebar nav a:hover,
+.settings-sidebar nav button.back-link:hover {
+  background-color: var(--card-background-hover);
+  color: var(--text-color);
+}
+
+.settings-header {
+  margin-bottom: 2rem;
+}

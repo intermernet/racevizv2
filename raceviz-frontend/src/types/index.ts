@@ -94,6 +94,7 @@ export interface TrackPath {
   racerId: number;
   points: TrackPoint[];
   trackColor: string;
+  totalDistance: number; // Total distance of the track in meters
 }
 
 /**

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth.tsx';
+import { Link } from 'react-router-dom';
 import './UserProfileDropdown.css';
 
 export const UserProfileDropdown: React.FC = () => {
@@ -39,8 +40,9 @@ export const UserProfileDropdown: React.FC = () => {
             <strong>{user.username}</strong>
           </div>
           <ul>
-            {/* You can add other links here, e.g., to a profile page */}
-            {/* <li><Link to="/profile">Your Profile</Link></li> */}
+            <li>
+              <Link to="/settings" className="dropdown-link" onClick={() => setIsOpen(false)}>Account Settings</Link>
+            </li>
             <li>
               <button className="logout-button" onClick={logout}>
                 Log Out

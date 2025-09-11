@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 // We import `Map` as `MapLibreMap` to avoid conflicting with the built-in JS `Map` data structure.
-import { Map as MapLibreMap, LngLatBounds, NavigationControl, Popup } from 'maplibre-gl';
+import { Map as MapLibreMap, LngLatBounds, NavigationControl, Popup, type LayerSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 // Import shared types and utility functions
@@ -24,6 +24,12 @@ const RACEVIZ_METADATA_KEY = 'raceviz-layer';
 interface EventMapProps {
   eventData: PublicEventData;
 }
+
+// Create a new type that intersects LayerSpecification with our custom metadata.
+// This is the correct way to add properties to a union type.
+type RaceVizLayerSpecification = LayerSpecification & {
+  metadata?: { [key: string]: any };
+};
 
 export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -69,49 +75,39 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
   } = useRaceAnimation({ startTime, endTime });
 
   // --- AUTHORITATIVE MAP EFFECT ---
-  // This single effect manages the entire lifecycle of the map,
-  // including initialization, data loading, and style changes.
+  // This single effect manages the entire lifecycle of the map instance.
   useEffect(() => {
-    // --- 1. Initialize Map (only once) ---
-    if (!mapRef.current) {
-      const map = new MapLibreMap({
-        container: mapContainerRef.current!,
-        center: [-98.5795, 39.8283], // Default center
-        zoom: 3, // Default zoom
-      });
-      mapRef.current = map;
-      map.addControl(new NavigationControl(), 'top-right');
-    }
+    if (!mapContainerRef.current) return;
 
-    const map = mapRef.current; // Now we can safely get the map instance
-    setIsMapReady(false); // Reset readiness on data or style change
-    if (!eventData.paths) return;
+    const map = new MapLibreMap({
+      container: mapContainerRef.current,
+      style: mapStyle, // Initial style
+      center: [-98.5795, 39.8283],
+      zoom: 3,
+    });
+    mapRef.current = map;
 
-    const cleanupDataLayers = () => {
+    const cleanupPopups = () => {
       Object.values(racerPopupsRef.current).forEach(popup => popup.remove());
       racerPopupsRef.current = {};
-      eventData.paths.forEach(path => {
-        const sourceId = `track-${path.racerId}`;
-        if (map.getLayer(sourceId)) map.removeLayer(sourceId);
-        if (map.getSource(sourceId)) map.removeSource(sourceId);
-      });
     };
 
     const setupMapData = () => {
-      // This function can be called multiple times. Ensure we don't re-add sources.
-      if (map.getSource(`track-${eventData.paths[0]?.racerId}`)) return;
+      if (!mapRef.current) return; // Guard against cleanup race conditions
+      const currentMap = mapRef.current;
 
-      cleanupDataLayers(); // Clean up any previous data layers before adding new ones.
+      cleanupPopups();
+
       const bounds = new LngLatBounds();
       lastIndexRef.current = {};
 
       eventData.paths.forEach(path => {
         lastIndexRef.current[path.racerId] = 0;
         if (path.points.length < 2) return;
-        
+
         const sourceId = `track-${path.racerId}`;
-        map.addSource(sourceId, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: path.points.map(p => [p.lon, p.lat]) } } });
-        map.addLayer({
+        currentMap.addSource(sourceId, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: path.points.map(p => [p.lon, p.lat]) } } });
+        currentMap.addLayer({
           id: sourceId, type: 'line', source: sourceId,
           metadata: { [RACEVIZ_METADATA_KEY]: true },
           layout: { 'line-join': 'round', 'line-cap': 'round' },
@@ -124,58 +120,48 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
         if (path.points.length === 0) return;
         const racer = eventData.racers.find(r => r.id === path.racerId);
         const user = eventData.users.find(u => u.id === racer?.uploaderUserId);
-        
-        const el = document.createElement('div');
+
+        const el = document.createElement('img');
         el.className = 'racer-marker';
-        el.style.backgroundImage = `url(${user?.avatarUrl || 'https://via.placeholder.com/40'})`;
+        const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(racer?.racerName || 'R')}&background=333&color=fff&size=40`;
+        el.src = racer?.trackAvatarUrl || user?.avatarUrl || fallbackAvatarUrl;
+        el.alt = `${racer?.racerName || 'Racer'}'s avatar`;
+        el.onerror = () => { el.src = fallbackAvatarUrl; };
+
         el.style.borderColor = path.trackColor;
         el.addEventListener('click', () => setSelectedRacerId(prevId => (prevId === path.racerId ? null : path.racerId)));
-        
+
         const startPos = path.points[0];
         const markerPopup = new Popup({
           closeButton: false, closeOnClick: false, anchor: 'center', className: 'racer-marker-popup'
-        }).setLngLat([startPos.lon, startPos.lat]).setDOMContent(el).addTo(map);
+        }).setLngLat([startPos.lon, startPos.lat]).setDOMContent(el).addTo(currentMap);
         racerPopupsRef.current[path.racerId] = markerPopup;
       });
-      
+
       if (!bounds.isEmpty()) {
         trackBoundsRef.current = bounds;
-        map.fitBounds(bounds, { padding: 60, duration: 0 });
+        currentMap.fitBounds(bounds, { padding: 60, duration: 0 });
       }
+
+      setIsMapReady(true);
     };
 
-    // This function will run whenever the style is loaded or reloaded.
-    const onStyleLoad = () => {
+    const onMapLoad = () => {
       setupMapData();
-      setIsMapReady(true); // Map is now ready for animations and popups
     };
 
-    // Set the style. This will always trigger a 'load' event.
-    map.setStyle(mapStyle);
-
-    // Listen for the style to be loaded to add our data.
-    map.on('load', onStyleLoad);
+    map.on('load', onMapLoad);
+    map.addControl(new NavigationControl(), 'top-right');
 
     return () => {
-      // Cleanup listeners and layers when the component unmounts or dependencies change.
-      // Check if map and its style are still valid before cleanup
-      if (map.isStyleLoaded()) {
-          map.off('load', onStyleLoad);
-          cleanupDataLayers();
-      }
-    };
-  }, [eventData, mapStyle]); // Re-run this entire effect when eventData or mapStyle changes.
-
-  // --- EFFECT 2: MAP DESTRUCTION ---
-  // This effect runs only once on unmount to clean up the map instance.
-  useEffect(() => {
-    return () => {
-      mapRef.current?.remove();
+      map.off('load', onMapLoad);
+      map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [eventData, mapStyle]); // Re-run this entire effect when eventData or mapStyle changes
 
-  // --- EFFECT 3: UNIFIED ANIMATION FOR MARKERS AND POPUPS ---
+  // --- EFFECT 2: UNIFIED ANIMATION FOR MARKERS AND POPUPS ---
+  // Note: Renumbered from 3 to 2
   useEffect(() => {
     if (!isMapReady || !eventData || !eventData.racers || !eventData.users) return;
 
@@ -255,7 +241,8 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
     }
   }, [currentTime, eventData, selectedRacerId, isLeaderboardOpen, isMapReady]);
 
-  // --- EFFECT 4: MANAGE INFO POPUP CREATION/DESTRUCTION ---
+  // --- EFFECT 3: MANAGE INFO POPUP CREATION/DESTRUCTION ---
+  // Note: Renumbered from 4 to 3
   useEffect(() => {
     const map = mapRef.current; // No need for isMapReady here, as it depends on selectedRacerId which is user-driven
     if (!map) return;

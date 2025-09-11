@@ -12,6 +12,7 @@ import { HomePage } from './pages/HomePage.tsx';
 import { DashboardPage } from './pages/DashboardPage.tsx';
 import { GroupPage } from './pages/GroupPage.tsx';
 import { EventMapPage } from './pages/EventMapPage.tsx';
+import { SettingsPage } from './pages/SettingsPage.tsx';
 import { ManageRacersPage } from './pages/ManageRacersPage.tsx';
 import { AuthCallbackPage } from './pages/AuthCallbackPage.tsx';
 import { NotFoundPage } from './pages/NotFoundPage.tsx';
@@ -40,6 +41,7 @@ function App(): React.ReactElement {
           <Route index element={<DashboardPage />} />
           <Route path="groups/:groupId" element={<GroupPage />} />
           <Route path="groups/:groupId/events/:eventId/manage" element={<ManageRacersPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
       ) : (
         // --- PUBLIC-ONLY ROUTES ---

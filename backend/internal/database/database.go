@@ -159,7 +159,7 @@ func (s *Service) InitMainDB() error {
 				name TEXT NOT NULL,
 				creator_user_id INTEGER NOT NULL,
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-				FOREIGN KEY (creator_user_id) REFERENCES users (id)
+				FOREIGN KEY (creator_user_id) REFERENCES users (id) ON DELETE SET NULL
 			);`)
 		if err != nil {
 			return err

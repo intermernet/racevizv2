@@ -1,6 +1,7 @@
 package gpx
 
 import (
+	"math"
 	"os"
 	"time"
 
@@ -17,9 +18,26 @@ type TrackPoint struct {
 
 // TrackPath represents the complete, processed track for a single racer.
 type TrackPath struct {
-	RacerID    int64        `json:"racerId"`
-	Points     []TrackPoint `json:"points"`
-	TrackColor string       `json:"trackColor"`
+	RacerID       int64        `json:"racerId"`
+	Points        []TrackPoint `json:"points"`
+	TrackColor    string       `json:"trackColor"`
+	TotalDistance float64      `json:"totalDistance"` // Total distance of the track in meters
+}
+
+// DistanceTo calculates the great-circle distance to another point using the Haversine formula.
+func (p *TrackPoint) DistanceTo(p2 *TrackPoint) float64 {
+	const R = 6371e3 // Earth's radius in meters
+	lat1Rad := p.Lat * math.Pi / 180
+	lat2Rad := p2.Lat * math.Pi / 180
+	deltaLatRad := (p2.Lat - p.Lat) * math.Pi / 180
+	deltaLonRad := (p2.Lon - p.Lon) * math.Pi / 180
+
+	a := math.Sin(deltaLatRad/2)*math.Sin(deltaLatRad/2) +
+		math.Cos(lat1Rad)*math.Cos(lat2Rad)*
+			math.Sin(deltaLonRad/2)*math.Sin(deltaLonRad/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	return R * c
 }
 
 // ProcessFile reads a GPX file from a given path, validates it, and processes it
@@ -61,11 +79,18 @@ func ProcessFile(filePath, eventType string, racerID int64) (*TrackPath, error) 
 		}
 	}
 
+	// 7. Calculate total track distance
+	var totalDistance float64
+	for i := 0; i < len(trackPoints)-1; i++ {
+		totalDistance += trackPoints[i].DistanceTo(&trackPoints[i+1])
+	}
+
 	// 6. Assemble the final TrackPath object.
 	processedPath := &TrackPath{
-		RacerID:    racerID,
-		Points:     trackPoints,
-		TrackColor: "",
+		RacerID:       racerID,
+		Points:        trackPoints,
+		TrackColor:    "",
+		TotalDistance: totalDistance,
 	}
 
 	return processedPath, nil

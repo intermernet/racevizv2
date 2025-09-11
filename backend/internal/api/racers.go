@@ -164,6 +164,47 @@ func (s *Server) handleUpdateRacerColor(w http.ResponseWriter, r *http.Request) 
 	s.writeJSON(w, http.StatusOK, envelope{"message": "color updated successfully"})
 }
 
+// handleUpdateRacerAvatar handles requests to change a specific racer's avatar.
+func (s *Server) handleUpdateRacerAvatar(w http.ResponseWriter, r *http.Request) {
+	// Auth: Check if the user is a member of the group.
+	updaterID, err := s.getUserIDFromContext(r)
+	if err != nil {
+		s.errorJSON(w, err, http.StatusInternalServerError)
+		return
+	}
+	groupID, _ := strconv.ParseInt(chi.URLParam(r, "groupID"), 10, 64)
+	isMember, err := s.db.IsUserGroupMember(s.db.GetMainDB(), groupID, updaterID)
+	if err != nil || !isMember {
+		s.errorJSON(w, errors.New("forbidden: you are not a member of this group"), http.StatusForbidden)
+		return
+	}
+
+	racerID, _ := strconv.ParseInt(chi.URLParam(r, "racerID"), 10, 64)
+
+	var payload struct {
+		AvatarURL string `json:"avatarUrl"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		s.errorJSON(w, errors.New("invalid request body"), http.StatusBadRequest)
+		return
+	}
+
+	groupDB, err := s.db.GetGroupDB(groupID)
+	if err != nil {
+		s.errorJSON(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	// Update the racer's avatar URL in the database.
+	// We'll need to add this `UpdateRacerAvatar` method to the database layer.
+	if err := s.db.UpdateRacerAvatar(groupDB, racerID, payload.AvatarURL); err != nil {
+		s.errorJSON(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	s.writeJSON(w, http.StatusOK, envelope{"message": "Racer avatar updated successfully"})
+}
+
 // handleDeleteRacer deletes a racer and their associated GPX file.
 func (s *Server) handleDeleteRacer(w http.ResponseWriter, r *http.Request) {
 	deleterID, err := s.getUserIDFromContext(r)

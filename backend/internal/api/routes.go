@@ -48,6 +48,9 @@ func (s *Server) RegisterRoutes(r *chi.Mux) {
 
 			// User Routes
 			r.Get("/users/me", s.handleGetMyProfile)
+			r.Patch("/users/me", s.handleUpdateMyProfile)
+			r.Delete("/users/me", s.handleDeleteMyProfile)
+			r.Put("/users/me/avatar", s.handleUpdateMyAvatar)
 
 			// Group Routes
 			r.Get("/groups", s.handleGetMyGroups)
@@ -74,6 +77,7 @@ func (s *Server) RegisterRoutes(r *chi.Mux) {
 			r.Delete("/groups/{groupID}/events/{eventID}/racers/{racerID}", s.handleDeleteRacer)
 			r.Post("/groups/{groupID}/events/{eventID}/racers/{racerID}/gpx", s.handleGpxUpload)
 			r.Patch("/groups/{groupID}/events/{eventID}/racers/{racerID}", s.handleUpdateRacerColor)
+			r.Put("/groups/{groupID}/events/{eventID}/racers/{racerID}/avatar", s.handleUpdateRacerAvatar)
 		})
 	})
 }

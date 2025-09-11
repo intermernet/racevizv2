@@ -63,6 +63,51 @@ func (s *Service) GetUserByID(db DBorTx, id int64) (*User, error) {
 	return user, err
 }
 
+// UpdateUserAvatar updates the avatar_url for a specific user.
+func (s *Service) UpdateUserAvatar(db DBorTx, userID int64, avatarURL string) error {
+	query := `UPDATE users SET avatar_url = ? WHERE id = ?;`
+	res, err := db.Exec(query, avatarURL, userID)
+	if err != nil {
+		return err
+	}
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("user not found")
+	}
+	return nil
+}
+
+// UpdateUser updates a user's username and/or password hash.
+func (s *Service) UpdateUser(db DBorTx, userID int64, username, passwordHash string) error {
+	var queryBuilder strings.Builder
+	queryBuilder.WriteString("UPDATE users SET ")
+
+	var args []interface{}
+	if username != "" {
+		queryBuilder.WriteString("username = ? ")
+		args = append(args, username)
+	}
+
+	if passwordHash != "" {
+		if len(args) > 0 {
+			queryBuilder.WriteString(", ")
+		}
+		queryBuilder.WriteString("password_hash = ? ")
+		args = append(args, passwordHash)
+	}
+
+	queryBuilder.WriteString("WHERE id = ?;")
+	args = append(args, userID)
+
+	_, err := db.Exec(queryBuilder.String(), args...)
+	return err
+}
+
+func (s *Service) DeleteUser(db DBorTx, userID int64) error {
+	_, err := db.Exec("DELETE FROM users WHERE id = ?", userID)
+	return err
+}
+
 func (s *Service) GetUsersByIDs(db DBorTx, userIDs map[int64]struct{}) ([]User, error) {
 	if len(userIDs) == 0 {
 		return []User{}, nil
@@ -348,6 +393,20 @@ func (s *Service) GetRacersByEventID(db DBorTx, eventID int64) ([]*Racer, error)
 func (s *Service) UpdateRacerColor(db DBorTx, racerID int64, newColor string) error {
 	query := `UPDATE racers SET track_color = ? WHERE id = ?;`
 	res, err := db.Exec(query, newColor, racerID)
+	if err != nil {
+		return err
+	}
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("racer not found")
+	}
+	return nil
+}
+
+// UpdateRacerAvatar updates the track_avatar_url for a specific racer.
+func (s *Service) UpdateRacerAvatar(db DBorTx, racerID int64, avatarURL string) error {
+	query := `UPDATE racers SET track_avatar_url = ? WHERE id = ?;`
+	res, err := db.Exec(query, avatarURL, racerID)
 	if err != nil {
 		return err
 	}
