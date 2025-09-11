@@ -53,6 +53,10 @@
   flex-grow: 1;
 }
 
+.event-date.placeholder {
+    color: transparent;
+}
+
 .event-card-actions {
   display: flex;
   gap: 0.5rem;

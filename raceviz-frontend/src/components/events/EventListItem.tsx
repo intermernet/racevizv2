@@ -1,35 +1,44 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import type { RaceEvent } from '../../types';
+
+// Import shared types
+import type { RaceEvent } from '../../types/index.ts';
+
+// Import component-specific styles
 import './EventListItem.css';
 
 interface EventListItemProps {
   event: RaceEvent;
   onDelete: (eventId: number) => void;
-  /** The ID of the currently logged-in user. */
-  currentUserId: number; 
+  currentUserId: number;
 }
 
+/**
+ * Renders a single "card" for an event in the list.
+ * It displays the event's details and provides action buttons to view the map,
+ * manage racers, or delete the event (with proper permissions).
+ */
 export const EventListItem: React.FC<EventListItemProps> = ({ event, onDelete, currentUserId }) => {
-  // A simple date formatter
+  // We calculate the formattedDate, which will be a string for "Race" events
+  // or null for "Time Trial" events.
   const formattedDate = event.startDate
     ? new Date(event.startDate).toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
       })
-    : 'No date set'; // This will be shown for Time Trials
+    : null;
 
+  /**
+   * Shows a confirmation dialog and calls the parent's onDelete handler.
+   */
   const handleDelete = () => {
-    // The confirmation dialog provides a layer of safety for the user.
     if (window.confirm(`Are you sure you want to delete the event "${event.name}"? This action cannot be undone.`)) {
       onDelete(event.id);
     }
   };
 
-  // --- IMPLEMENTED OWNERSHIP CHECK ---
-  // The "Delete" button will only be rendered if the logged-in user's ID
-  // matches the ID of the user who created the event.
+  // Determine if the current user has permission to delete this event.
   const canDelete = currentUserId === event.creatorUserId;
 
   return (
@@ -38,14 +47,29 @@ export const EventListItem: React.FC<EventListItemProps> = ({ event, onDelete, c
         <h3>{event.name}</h3>
         <span className={`event-type-badge ${event.eventType}`}>{event.eventType.replace('_', ' ')}</span>
       </div>
-      <p className="event-date">{formattedDate}</p>
+
+      {/*
+        Conditionally render the date paragraph.
+        If the event type is 'race', display the formatted date.
+        If it's 'time_trial', render a placeholder paragraph. This placeholder is
+        styled with `color: transparent` to be invisible but still occupy vertical
+        space, ensuring all cards in the grid have a consistent height.
+      */}
+      {event.eventType === 'race' ? (
+        <p className="event-date">{formattedDate}</p>
+      ) : (
+        <p className="event-date placeholder">&nbsp;</p>
+      )}
+
       <div className="event-card-actions">
-        <Link to={`/events/${event.groupId}/${event.id}/view`} className="action-btn view-map">View Map</Link>
-        
+        {/* Use Link components for proper client-side navigation */}
+        <Link to={`/events/${event.groupId}/${event.id}/view`} className="action-btn view-map">
+          View Map
+        </Link>
         <Link to={`/groups/${event.groupId}/events/${event.id}/manage`} className="action-btn manage">
           Manage
         </Link>
-        {/* The button is now conditionally rendered based on the canDelete check */}
+        {/* The Delete button is only rendered if the user has permission */}
         {canDelete && (
           <button className="action-btn delete" onClick={handleDelete}>Delete</button>
         )}

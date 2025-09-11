@@ -90,3 +90,49 @@ func toRacerResponseList(racers []*database.Racer) []RacerResponse {
 	}
 	return responseList
 }
+
+// EventResponse is the DTO for an event. It ensures that nullable date fields
+// are correctly represented as an ISO 8601 string or `null` in the JSON response.
+type EventResponse struct {
+	ID            int64   `json:"id"`
+	GroupID       int64   `json:"groupId"`
+	Name          string  `json:"name"`
+	StartDate     *string `json:"startDate"` // Pointer to handle null
+	EndDate       *string `json:"endDate"`   // Pointer to handle null
+	EventType     string  `json:"eventType"`
+	CreatorUserID int64   `json:"creatorUserId"`
+}
+
+// toEventResponse is a "mapper" function that converts our internal database model
+// into the public-facing EventResponse DTO.
+func toEventResponse(event *database.Event) EventResponse {
+	var startDate, endDate *string
+
+	if event.StartDate.Valid {
+		s := event.StartDate.Time.Format(time.RFC3339)
+		startDate = &s
+	}
+	if event.EndDate.Valid {
+		e := event.EndDate.Time.Format(time.RFC3339)
+		endDate = &e
+	}
+
+	return EventResponse{
+		ID:            event.ID,
+		GroupID:       event.GroupID,
+		Name:          event.Name,
+		StartDate:     startDate,
+		EndDate:       endDate,
+		EventType:     event.EventType,
+		CreatorUserID: event.CreatorUserID,
+	}
+}
+
+// toEventResponseList is a helper to convert a slice of database events.
+func toEventResponseList(events []*database.Event) []EventResponse {
+	responseList := make([]EventResponse, len(events))
+	for i, event := range events {
+		responseList[i] = toEventResponse(event)
+	}
+	return responseList
+}

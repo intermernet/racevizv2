@@ -291,7 +291,8 @@ func (s *Server) handleGetGroupEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.writeJSON(w, http.StatusOK, envelope{"events": events})
+	eventResponses := toEventResponseList(events)
+	s.writeJSON(w, http.StatusOK, envelope{"events": eventResponses})
 }
 
 // handleGetGroupMembers fetches all members for a specific group.

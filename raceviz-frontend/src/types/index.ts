@@ -117,5 +117,18 @@ export interface RacerProgress {
 export interface PublicEventData {
   event: RaceEvent;
   users: UserProfile[]; // Contains profiles of racers for avatar mapping
+  racers: Racer[];
   paths: TrackPath[];
+}
+
+/**
+ * Represents the live, calculated data for a single racer in the leaderboard.
+ */
+export interface LeaderboardItem {
+  id: number;
+  rank: number;
+  name: string;
+  avatarUrl: string | null;
+  trackColor: string;
+  speedKph: number;
 }

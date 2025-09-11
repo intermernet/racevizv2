@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/intermernet/raceviz/internal/database"
 	"github.com/intermernet/raceviz/internal/gpx"
 
 	"github.com/go-chi/chi/v5"
@@ -36,9 +35,10 @@ type addRacerPayload struct {
 
 // publicEventDataResponse is the DTO for the public-facing map data.
 type publicEventDataResponse struct {
-	Event database.Event  `json:"event"`
-	Users []UserResponse  `json:"users"`
-	Paths []gpx.TrackPath `json:"paths"`
+	Event  EventResponse   `json:"event"`
+	Users  []UserResponse  `json:"users"`
+	Racers []RacerResponse `json:"racers"`
+	Paths  []gpx.TrackPath `json:"paths"`
 }
 
 // --- HTTP Handlers ---
@@ -72,7 +72,8 @@ func (s *Server) handleGetEventDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.writeJSON(w, http.StatusOK, envelope{"event": event})
+	eventResponse := toEventResponse(event)
+	s.writeJSON(w, http.StatusOK, envelope{"event": eventResponse})
 }
 
 // handleCreateEvent handles the creation of a new event within a group.
@@ -147,7 +148,8 @@ func (s *Server) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.writeJSON(w, http.StatusCreated, envelope{"event": newEvent})
+	eventResponse := toEventResponse(newEvent)
+	s.writeJSON(w, http.StatusCreated, envelope{"event": eventResponse})
 }
 
 // handleDeleteEvent handles deleting an event, its racers, and their associated GPX files.
@@ -231,6 +233,8 @@ func (s *Server) handleGetPublicEventData(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	racerResponses := toRacerResponseList(racers)
+
 	uploaderIDs := make(map[int64]struct{})
 	for _, racer := range racers {
 		uploaderIDs[racer.UploaderUserID] = struct{}{}
@@ -267,9 +271,10 @@ func (s *Server) handleGetPublicEventData(w http.ResponseWriter, r *http.Request
 	}
 
 	response := publicEventDataResponse{
-		Event: *event,
-		Users: userResponses,
-		Paths: trackPaths,
+		Event:  toEventResponse(event),
+		Users:  userResponses,
+		Racers: racerResponses,
+		Paths:  trackPaths,
 	}
 
 	s.writeJSON(w, http.StatusOK, response)
