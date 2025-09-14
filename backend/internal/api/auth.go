@@ -81,7 +81,11 @@ func (s *Server) handleGoogleLogin(w http.ResponseWriter, r *http.Request) {
 // handleGoogleCallback is where Google redirects the user back after they grant consent.
 func (s *Server) handleGoogleCallback(w http.ResponseWriter, r *http.Request) {
 	// 1. Validate the state cookie to ensure the request is legitimate.
-	oauthState, _ := r.Cookie("oauthstate")
+	oauthState, err := r.Cookie("oauthstate")
+	if err != nil {
+		s.errorJSON(w, errors.New("invalid oauth state cookie"), http.StatusBadRequest)
+		return
+	}
 	if r.FormValue("state") != oauthState.Value {
 		s.errorJSON(w, errors.New("invalid oauth state"), http.StatusUnauthorized)
 		return
