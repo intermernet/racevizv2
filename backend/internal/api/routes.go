@@ -23,11 +23,9 @@ func (s *Server) RegisterRoutes(r *chi.Mux) {
 	// We create a new routing group specifically for our versioned REST API.
 	// All routes defined within this group will be prefixed with "/api/v1".
 	r.Route("/api/v1", func(r chi.Router) {
-		// The CORS middleware is now applied ONLY to routes within this /api/v1 group.
-		// This is the critical fix that prevents it from interfering with the WebSocket handshake.
 		r.Use(cors.Handler(cors.Options{
 			// In production, you would tighten this to your frontend's domain.
-			AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:3000"},
+			AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:3000", s.config.FrontendURL},
 			AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 			AllowCredentials: true,
