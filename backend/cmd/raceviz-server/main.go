@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/intermernet/raceviz/internal/api"
 	"github.com/intermernet/raceviz/internal/config"
@@ -98,8 +99,15 @@ func main() {
 	log.Printf("INFO: RaceViz server starting on %s", cfg.ServerAddr)
 
 	// Start the web server. ListenAndServe blocks until the server is stopped
-	// or an unrecoverable error occurs.
-	if err := http.ListenAndServe(cfg.ServerAddr, router); err != nil {
+	server := &http.Server{
+		Addr:         cfg.ServerAddr,
+		Handler:      router,
+		ReadTimeout:  5 * time.Second,   // Max time to read the request header
+		WriteTimeout: 10 * time.Second,  // Max time to write the response
+		IdleTimeout:  120 * time.Second, // Max time for connections to remain idle
+	}
+
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("FATAL: Failed to start server: %v", err)
 	}
 }

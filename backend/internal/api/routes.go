@@ -1,6 +1,8 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -12,6 +14,10 @@ func (s *Server) RegisterRoutes(r *chi.Mux) {
 	// These are safe and useful for both REST API and WebSocket upgrade requests.
 	r.Use(middleware.Logger)    // Logs incoming requests
 	r.Use(middleware.Recoverer) // Recovers from panics and returns a 500 error
+
+	// --- Static File Server ---
+	// This handler serves avatar files directly from the /public/avatars path.
+	r.Handle("/public/avatars/*", http.StripPrefix("/public/avatars/", http.FileServer(http.Dir(s.config.AvatarPath))))
 
 	// --- REST API Group with CORS ---
 	// We create a new routing group specifically for our versioned REST API.
@@ -28,12 +34,13 @@ func (s *Server) RegisterRoutes(r *chi.Mux) {
 			MaxAge:           300, // How long the browser can cache preflight results
 		}))
 
-		// --- Public REST Routes ---
-		// These routes do not require an authentication token.
+		// Auth routes
 		r.Post("/users/register", s.handleRegisterUser)
 		r.Post("/users/login", s.handleLoginUser)
 		r.Get("/auth/google/login", s.handleGoogleLogin)
 		r.Get("/auth/google/callback", s.handleGoogleCallback)
+
+		// Public data routes
 		r.Get("/events/{groupID}/{eventID}/public", s.handleGetPublicEventData)
 
 		// --- Authenticated REST Routes ---

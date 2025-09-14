@@ -34,6 +34,7 @@ type Event struct {
 	EndDate       sql.NullTime `json:"endDate"`
 	EventType     string       `json:"eventType"` // Can be 'race' or 'time_trial'
 	CreatorUserID int64        `json:"creatorUserId"`
+	HasGpxData    bool         `json:"-"` // Not a DB field, populated by query
 }
 
 // Racer represents a record in a 'racers' table within a group's database.

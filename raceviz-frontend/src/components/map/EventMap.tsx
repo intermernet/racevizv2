@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 // We import `Map` as `MapLibreMap` to avoid conflicting with the built-in JS `Map` data structure.
 import { Map as MapLibreMap, LngLatBounds, NavigationControl, Popup } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -19,11 +19,18 @@ import './RacerMarker.css';
 
 // Get the MapTiler API key from environment variables
 const MAPTILER_API_KEY = import.meta.env.VITE_MAPTILER_API_KEY;
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 const RACEVIZ_METADATA_KEY = 'raceviz-layer';
 
 interface EventMapProps {
   eventData: PublicEventData;
 }
+
+// Create a new type that intersects LayerSpecification with our custom metadata.
+// This is the correct way to add properties to a union type.
+// type RaceVizLayerSpecification = LayerSpecification & {
+//   metadata?: { [key: string]: any };
+// };
 
 export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -90,6 +97,7 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
       if (!mapRef.current) return; // Guard against cleanup race conditions
       const currentMap = mapRef.current;
 
+      // Only clean up popups. Layers and sources are automatically cleared by map.setStyle().
       cleanupPopups();
 
       const bounds = new LngLatBounds();
@@ -113,16 +121,22 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
       eventData.paths.forEach(path => {
         if (path.points.length === 0) return;
         const racer = eventData.racers.find(r => r.id === path.racerId);
-        const user = eventData.users.find(u => u.id === racer?.uploaderUserId);
 
         const el = document.createElement('img');
         el.className = 'racer-marker';
+        
         const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(racer?.racerName || 'R')}&background=333&color=fff&size=40`;
-        el.src = racer?.trackAvatarUrl || user?.avatarUrl || fallbackAvatarUrl;
+        let finalAvatarUrl = racer?.trackAvatarUrl || fallbackAvatarUrl;
+
+        // Replicate the logic from UserAvatar.tsx to handle relative paths
+        if (finalAvatarUrl.startsWith('/')) {
+          finalAvatarUrl = `${API_BASE_URL.replace('/api/v1', '')}${finalAvatarUrl}`;
+        }
+
+        el.src = finalAvatarUrl;
         el.alt = `${racer?.racerName || 'Racer'}'s avatar`;
         el.onerror = () => { el.src = fallbackAvatarUrl; };
 
-        el.style.borderColor = path.trackColor;
         el.addEventListener('click', () => setSelectedRacerId(prevId => (prevId === path.racerId ? null : path.racerId)));
 
         const startPos = path.points[0];
@@ -159,29 +173,40 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
   useEffect(() => {
     if (!isMapReady || !eventData || !eventData.racers || !eventData.users) return;
 
+    // Calculate placings once for use throughout this effect.
+    const placings = calculateRacePlacing(eventData.paths, new Date(currentTime));
+
     // Update all racer "marker" popups
     for (const path of eventData.paths) {
       const markerPopup = racerPopupsRef.current[path.racerId];
       if (!markerPopup) continue;
       const lastIndex = lastIndexRef.current[path.racerId] || 0;
-      const positionResult = getPositionAtTime(path, currentTime, lastIndex);
+      const positionResult = getPositionAtTime(path, new Date(currentTime), lastIndex);
       if (positionResult) {
         markerPopup.setLngLat([positionResult.lon, positionResult.lat]);
         lastIndexRef.current[path.racerId] = positionResult.foundIndex;
       }
     }
+
+    // Update the z-index of racer markers based on their current rank.
+    const totalRacers = eventData.paths.length;
+    placings.forEach(place => {
+      const popup = racerPopupsRef.current[place.racerId];
+      if (popup) {
+        // Higher rank (lower number) gets a higher z-index.
+        popup.getElement().style.zIndex = String(totalRacers - place.rank);
+      }
+    });
     
     // If leaderboard is open, calculate and update its data
     if (isLeaderboardOpen) {
-        const placings = calculateRacePlacing(eventData.paths, currentTime);
         const newLeaderboardData: LeaderboardItem[] = [];
         for (const place of placings) {
             const racer = eventData.racers.find(r => r.id === place.racerId);
             if (!racer) continue;
             const path = eventData.paths.find(p => p.racerId === place.racerId);
-            const user = eventData.users.find(u => u.id === racer.uploaderUserId);
-            if (!path || !user) continue;
-            const posResult = getPositionAtTime(path, currentTime, lastIndexRef.current[path.racerId] || 0);
+            if (!path) continue;
+            const posResult = getPositionAtTime(path, new Date(currentTime), lastIndexRef.current[path.racerId] || 0);
             let speedKph = 0;
             if (posResult && posResult.foundIndex < path.points.length - 1) {
                 speedKph = calculateSpeedAndHeading(
@@ -191,10 +216,15 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
             }
             newLeaderboardData.push({
                 id: racer.id, rank: place.rank, name: racer.racerName,
-                avatarUrl: user.avatarUrl, trackColor: path.trackColor, speedKph: speedKph,
+                avatarUrl: racer.trackAvatarUrl, 
+                trackColor: path.trackColor, 
+                speedKph: speedKph,
             });
         }
-        setLeaderboardData(newLeaderboardData);
+        // Deep comparison to prevent re-renders if data is the same
+        if (JSON.stringify(newLeaderboardData) !== JSON.stringify(leaderboardData)) {
+          setLeaderboardData(newLeaderboardData);
+        }
     }
     
     // If an info popup is open, update its position and content
@@ -205,7 +235,7 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
         const racerProfile = eventData.users.find(u => u.id === selectedRacer.uploaderUserId);
         if (!selectedPath || !racerProfile) return;
         const lastIndex = lastIndexRef.current[selectedRacerId] || 0;
-        const posResult = getPositionAtTime(selectedPath, currentTime, lastIndex);
+        const posResult = getPositionAtTime(selectedPath, new Date(currentTime), lastIndex);
         if (!posResult || posResult.foundIndex >= selectedPath.points.length - 1) {
             if (infoPopupRef.current) infoPopupRef.current.remove();
             infoPopupRef.current = null;
@@ -216,7 +246,6 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
             selectedPath.points[posResult.foundIndex],
             selectedPath.points[posResult.foundIndex + 1]
         );
-        const placings = calculateRacePlacing(eventData.paths, currentTime);
         const rank = placings.find(p => p.racerId === selectedRacerId)?.rank;
         const totalRacers = eventData.paths.length;
 
@@ -233,7 +262,7 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
         infoPopupRef.current.setLngLat([posResult.lon, posResult.lat]);
         infoPopupRef.current.setHTML(popupHTML);
     }
-  }, [currentTime, eventData, selectedRacerId, isLeaderboardOpen, isMapReady]);
+  }, [currentTime, eventData, selectedRacerId, isLeaderboardOpen, isMapReady, leaderboardData]);
 
   // --- EFFECT 3: MANAGE INFO POPUP CREATION/DESTRUCTION ---
   // Note: Renumbered from 4 to 3
@@ -262,6 +291,8 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
     }
   };
 
+  const handleCloseLeaderboard = useCallback(() => setIsLeaderboardOpen(false), []);
+
   return (
     <div className="event-map-wrapper">
       <div ref={mapContainerRef} className="map-container" />
@@ -275,7 +306,7 @@ export const EventMap: React.FC<EventMapProps> = ({ eventData }) => {
       <Leaderboard 
         data={leaderboardData}
         isOpen={isLeaderboardOpen}
-        onClose={() => setIsLeaderboardOpen(false)}
+        onClose={handleCloseLeaderboard}
       />
       <TimelineSlider
         progress={progress}

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth.tsx';
 import { Link } from 'react-router-dom';
+import { UserAvatar } from './UserAvatar.tsx'; // Import UserAvatar component
 import './UserProfileDropdown.css';
 
 export const UserProfileDropdown: React.FC = () => {
@@ -26,10 +27,10 @@ export const UserProfileDropdown: React.FC = () => {
   return (
     <div className="user-profile-widget" ref={dropdownRef}>
       <button className="profile-button" onClick={() => setIsOpen(!isOpen)}>
-        <img 
-          src={user.avatarUrl} 
-          alt="User avatar" 
+        <UserAvatar
+          avatarUrl={user.avatarUrl}
           className="profile-avatar" 
+          name={user.username}
         />
       </button>
 

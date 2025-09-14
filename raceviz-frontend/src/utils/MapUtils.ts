@@ -162,37 +162,79 @@ export function calculateSpeedAndHeading(p1: TrackPoint, p2: TrackPoint): { spee
  * @returns A sorted array of RacerProgress objects, from 1st place to last.
  */
 export function calculateRacePlacing(allPaths: TrackPath[], targetTime: Date): RacerProgress[] {
-  const racerProgressData = allPaths.map(path => {
-    let totalDistanceMeters = 0;
-    const points = path.points;
-    const targetTimestamp = targetTime.getTime();
+  const racerProgressData = allPaths
+    .filter(p => p.totalDistance > 0) // Filter out paths with no distance to avoid division by zero
+    .map(path => {
+      const points = path.points;
+      const targetTimestamp = targetTime.getTime();
 
-    let lastFullPointIndex = -1;
-    for (let i = 0; i < points.length; i++) {
-        if (new Date(points[i].timestamp).getTime() <= targetTimestamp) {
-            lastFullPointIndex = i;
-        } else {
-            break;
-        }
-    }
+      const lastPoint = points[points.length - 1];
+      const finishTimestamp = lastPoint ? new Date(lastPoint.timestamp).getTime() : Infinity;
+      const hasFinished = targetTimestamp >= finishTimestamp;
 
-    for (let i = 0; i < lastFullPointIndex; i++) {
-        totalDistanceMeters += haversineDistance(points[i], points[i+1]);
+      if (hasFinished) {
+        // Finished racers get a ranking score of their finish time.
+        // This ensures they are sorted before unfinished racers (who will have large positive scores).
+        return { racerId: path.racerId, distanceMeters: path.totalDistance, rankingScore: finishTimestamp, finishTime: finishTimestamp };
+      }
+
+      let totalDistanceMeters = 0;
+      let lastFullPointIndex = -1;
+      for (let i = 0; i < points.length; i++) {
+          if (new Date(points[i].timestamp).getTime() <= targetTimestamp) {
+              lastFullPointIndex = i;
+          } else {
+              break;
+          }
+      }
+
+      // Sum distance between all full points
+      for (let i = 0; i < lastFullPointIndex; i++) {
+          totalDistanceMeters += haversineDistance(points[i], points[i+1]);
+      }
+      
+      // Add distance for the final interpolated segment
+      if (lastFullPointIndex >= 0 && lastFullPointIndex < points.length - 1) {
+          const lastFullPoint = points[lastFullPointIndex];
+          const interpolatedPosition = getPositionAtTime(path, targetTime, lastFullPointIndex);
+          
+          if (interpolatedPosition) {
+              totalDistanceMeters += haversineDistance(lastFullPoint, interpolatedPosition);
+
+              // PT = Percentage of track completed
+              //const percentageCompleted = (totalDistanceMeters / path.totalDistance) * 100;
+              // DRR = Distance remaining in the racer's track
+              const distanceRemaining = path.totalDistance - totalDistanceMeters;
+              // DRC = Distance completed in the racer's track
+              //const distanceCompleted = totalDistanceMeters;
+
+              // RR = ((PT * DRR) + ((100-PT) * DRC)) / 2
+              //const rankingScore = (percentageCompleted * distanceRemaining) + ((100 - percentageCompleted) * distanceCompleted);
+              //console.log(`Racer ${path.racerId}: PT=${percentageCompleted.toFixed(2)}%, DRR=${distanceRemaining.toFixed(2)}m, DRC=${distanceCompleted.toFixed(2)}m, RS=${rankingScore.toFixed(2)}`);
+              const rankingScore = distanceRemaining;
+
+              return { racerId: path.racerId, distanceMeters: totalDistanceMeters, rankingScore, finishTime: undefined };
+          }
+      }
+      
+      // Fallback for racers who haven't started or have no valid position yet.
+      // Give them a very high ranking score to place them at the end.
+      return { racerId: path.racerId, distanceMeters: 0, rankingScore: Infinity, finishTime: undefined };
+    });
+
+  // Sort racers. Finished racers come first, sorted by their finish time.
+  // Unfinished racers come after, sorted by distance remaining.
+  const sortedProgress = racerProgressData.sort((a, b) => {
+    const aFinished = a.finishTime !== undefined;
+    const bFinished = b.finishTime !== undefined;
+
+    if (aFinished && bFinished) {
+      return a.rankingScore - b.rankingScore; // Earlier finish time is better
     }
-    
-    if (lastFullPointIndex >= 0 && lastFullPointIndex < points.length - 1) {
-        const lastFullPoint = points[lastFullPointIndex];
-        const interpolatedPosition = getPositionAtTime(path, targetTime, lastFullPointIndex);
-        
-        if (interpolatedPosition) {
-            totalDistanceMeters += haversineDistance(lastFullPoint, interpolatedPosition);
-        }
-    }
-    
-    return { racerId: path.racerId, distanceMeters: totalDistanceMeters };
+    if (aFinished) return -1; // a is finished, b is not
+    if (bFinished) return 1;  // b is finished, a is not
+    return a.rankingScore - b.rankingScore; // Neither is finished, sort by the new ranking score
   });
-
-  const sortedProgress = racerProgressData.sort((a, b) => b.distanceMeters - a.distanceMeters);
 
   return sortedProgress.map((progress, index) => ({
     ...progress,

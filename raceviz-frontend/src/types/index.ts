@@ -16,8 +16,8 @@
 export interface UserProfile {
   id: number;
   username: string;
-  email: string;
-  avatarUrl: string;
+  email: string; 
+  avatarUrl: string | null; // ISO 8601 format date string
   createdAt: string; // ISO 8601 format date string
 }
 
@@ -64,6 +64,7 @@ export interface RaceEvent {
   endDate: string | null;  // ISO 8601 format date string
   eventType: 'race' | 'time_trial';
   creatorUserId: number;
+  hasGpxData: boolean;
 }
 
 export interface Racer {
@@ -104,6 +105,7 @@ export interface TrackPath {
 export interface RacerProgress {
   racerId: number;
   distanceMeters: number;
+  rankingScore: number;
   rank: number;
 }
 

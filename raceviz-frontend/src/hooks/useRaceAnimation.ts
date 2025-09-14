@@ -14,7 +14,7 @@ interface UseRaceAnimationProps {
 export const useRaceAnimation = ({ startTime, endTime, initialSpeed = 1.0 }: UseRaceAnimationProps) => {
   // --- STATE ---
   // The `currentTime` state is the single source of truth for the animation's progress.
-  const [currentTime, setCurrentTime] = useState(startTime);
+  const [currentTime, setCurrentTime] = useState(startTime.getTime()); // Use numeric timestamp
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(initialSpeed);
 
@@ -40,15 +40,15 @@ export const useRaceAnimation = ({ startTime, endTime, initialSpeed = 1.0 }: Use
       // This allows us to remove `currentTime` from this hook's dependency array,
       // preventing the `animate` function from being re-created on every frame.
       setCurrentTime(prevTime => {
-        const newTimestamp = prevTime.getTime() + (deltaTime * speedRef.current);
+        const newTimestamp = prevTime + (deltaTime * speedRef.current);
         const endTimestamp = endTime.getTime();
         
         // Stop the animation if it reaches the end.
         if (newTimestamp >= endTimestamp) {
           setIsPlaying(false);
-          return endTime;
+          return endTimestamp;
         }
-        return new Date(newTimestamp);
+        return newTimestamp;
       });
     }
 
@@ -83,14 +83,14 @@ export const useRaceAnimation = ({ startTime, endTime, initialSpeed = 1.0 }: Use
     if (isPlaying) setIsPlaying(false); // Pause when scrubbing
     const totalDuration = endTime.getTime() - startTime.getTime();
     const timeOffset = totalDuration * (progressPercent / 100);
-    const newTime = new Date(startTime.getTime() + timeOffset);
+    const newTime = startTime.getTime() + timeOffset;
     setCurrentTime(newTime);
   };
   
   // --- DERIVED STATE ---
   // Calculate the progress percentage for the timeline slider.
   const totalDurationMs = endTime.getTime() - startTime.getTime();
-  const elapsedMs = currentTime.getTime() - startTime.getTime();
+  const elapsedMs = currentTime - startTime.getTime();
   const progress = totalDurationMs > 0 ? (elapsedMs / totalDurationMs) * 100 : 0;
   
   return {

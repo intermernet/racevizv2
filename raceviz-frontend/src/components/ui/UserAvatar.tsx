@@ -1,5 +1,8 @@
 import React from 'react';
 
+// Get the API base URL from environment variables to construct full image paths.
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 interface UserAvatarProps {
   avatarUrl: string | null | undefined;
   name: string;
@@ -13,18 +16,17 @@ interface UserAvatarProps {
  * with the user's initials.
  */
 export const UserAvatar: React.FC<UserAvatarProps> = ({ avatarUrl, name, className, style }) => {
-  const getInitials = (name: string) => {
-    if (!name) return '?';
-    const nameParts = name.split(' ');
-    if (nameParts.length > 1) {
-      return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  };
-
   const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=333&color=fff&size=128`;
 
-  const finalAvatarUrl = avatarUrl || fallbackAvatarUrl;
+  let finalAvatarUrl = avatarUrl || fallbackAvatarUrl;
+
+  // If the avatarUrl is a relative path from our backend, prepend the API base URL.
+  // This check prevents prepending the URL to external URLs (like from Google OAuth).
+  if (avatarUrl && avatarUrl.startsWith('/')) {
+    // Construct the URL for the static file server, which is at the root of the domain,
+    // not under the /api/v1 prefix.
+    finalAvatarUrl = `${API_BASE_URL.replace('/api/v1', '')}${avatarUrl}`;
+  }
 
   return (
     <img

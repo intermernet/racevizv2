@@ -1,5 +1,6 @@
 import React from 'react';
 import type { UserProfile } from '../../types';
+import { UserAvatar } from '../ui/UserAvatar.tsx';
 import './MemberListItem.css';
 
 interface MemberListItemProps {
@@ -13,7 +14,11 @@ export const MemberListItem: React.FC<MemberListItemProps> = ({ member, isCreato
   return (
     <li className="member-list-item">
       <div className="member-info">
-        <img src={member.avatarUrl} alt={`${member.username}'s avatar`} className="member-avatar" />
+        <UserAvatar
+          avatarUrl={member.avatarUrl}
+          name={member.username}
+          className="member-avatar"
+        />
         <span className="member-name">{member.username}</span>
         {isCreator && <span className="member-badge creator-badge">Creator</span>}
       </div>

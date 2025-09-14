@@ -313,10 +313,16 @@ func (s *Service) GetEventByID(db DBorTx, id int64) (*Event, error) {
 }
 
 func (s *Service) GetEventsByGroupID(db DBorTx, groupID int64) ([]*Event, error) {
-	query := `SELECT id, group_id, name, start_date, end_date, event_type, creator_user_id
-			  FROM events
-			  WHERE group_id = ?
-			  ORDER BY start_date DESC;`
+	// This query now joins with the racers table to determine if any racer
+	// in the event has a non-null gpx_file_path.
+	query := `
+		SELECT 
+			e.id, e.group_id, e.name, e.start_date, e.end_date, e.event_type, e.creator_user_id,
+			EXISTS(SELECT 1 FROM racers r WHERE r.event_id = e.id AND r.gpx_file_path IS NOT NULL AND r.gpx_file_path != '') as has_gpx_data
+		FROM events e
+		WHERE e.group_id = ?
+		ORDER BY e.start_date DESC;
+	`
 
 	rows, err := db.Query(query, groupID)
 	if err != nil {
@@ -327,7 +333,7 @@ func (s *Service) GetEventsByGroupID(db DBorTx, groupID int64) ([]*Event, error)
 	var events []*Event
 	for rows.Next() {
 		event := &Event{}
-		if err := rows.Scan(&event.ID, &event.GroupID, &event.Name, &event.StartDate, &event.EndDate, &event.EventType, &event.CreatorUserID); err != nil {
+		if err := rows.Scan(&event.ID, &event.GroupID, &event.Name, &event.StartDate, &event.EndDate, &event.EventType, &event.CreatorUserID, &event.HasGpxData); err != nil {
 			return nil, err
 		}
 		events = append(events, event)

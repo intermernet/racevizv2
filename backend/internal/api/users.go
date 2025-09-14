@@ -2,9 +2,15 @@ package api
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
+
+	"encoding/json"
 
 	"github.com/intermernet/raceviz/internal/auth"
 	"golang.org/x/crypto/bcrypt"
@@ -60,24 +66,50 @@ func (s *Server) handleUpdateMyAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Decode the new avatar URL from the request body.
-	var payload struct {
-		AvatarURL string `json:"avatarUrl"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		s.errorJSON(w, errors.New("bad request: could not decode JSON"), http.StatusBadRequest)
+	// --- 2. Handle File Upload ---
+	// Set a max file size (e.g., 5MB)
+	r.Body = http.MaxBytesReader(w, r.Body, 5<<20)
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		s.errorJSON(w, errors.New("file is too large (max 5MB)"), http.StatusBadRequest)
 		return
 	}
 
-	// Basic validation for the URL can be added here if desired.
+	file, header, err := r.FormFile("avatar")
+	if err != nil {
+		s.errorJSON(w, errors.New("invalid file upload: 'avatar' field is missing"), http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
 
-	// 3. Update the user's avatar URL in the database.
-	if err := s.db.UpdateUserAvatar(s.db.GetMainDB(), userID, payload.AvatarURL); err != nil {
+	// --- 3. Store the File ---
+	ext := filepath.Ext(header.Filename)
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif" {
+		s.errorJSON(w, errors.New("invalid file type: only jpg, png, gif are allowed"), http.StatusBadRequest)
+		return
+	}
+	newFileName := fmt.Sprintf("user_avatar_%d_%d%s", userID, time.Now().UnixNano(), ext)
+	newFilePath := filepath.Join(s.config.AvatarPath, newFileName)
+
+	dst, err := os.Create(newFilePath)
+	if err != nil {
+		s.errorJSON(w, errors.New("could not save file"), http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		s.errorJSON(w, errors.New("could not write file to disk"), http.StatusInternalServerError)
+		return
+	}
+
+	// --- 4. Update Database Record ---
+	publicAvatarURL := fmt.Sprintf("/public/avatars/%s", newFileName)
+	if err := s.db.UpdateUserAvatar(s.db.GetMainDB(), userID, publicAvatarURL); err != nil {
+		os.Remove(newFilePath) // Attempt to clean up the file if DB update fails.
 		s.errorJSON(w, errors.New("failed to update avatar"), http.StatusInternalServerError)
 		return
 	}
 
-	// 4. Respond with a success message.
 	s.writeJSON(w, http.StatusOK, envelope{"message": "Avatar updated successfully"})
 }
 

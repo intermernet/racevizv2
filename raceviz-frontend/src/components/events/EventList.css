@@ -32,10 +32,12 @@
   background-color: #535bf2;
 }
 
-.events-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
+.event-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background-color: var(--card-background);
+  border-radius: 8px;
 }
 
 .no-events-message {

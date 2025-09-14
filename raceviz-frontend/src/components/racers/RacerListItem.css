@@ -17,6 +17,12 @@
     background-color: #2a2a2a;
 }
 
+.racer-identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .racer-name {
   font-weight: 500;
   font-size: 1.1em;
@@ -26,6 +32,63 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.racer-avatar-wrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+.racer-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+}
+
+.edit-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  font-size: 1.2em;
+}
+
+.racer-avatar-wrapper:hover .edit-avatar-overlay {
+  opacity: 1;
+}
+
+.edit-avatar-overlay .spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.racer-color-picker {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 .gpx-status {

@@ -2,9 +2,11 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -45,13 +47,6 @@ func (s *Server) handleAddRacer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the user's full profile to use their default avatar for the racer.
-	user, err := s.db.GetUserByID(s.db.GetMainDB(), adderID)
-	if err != nil {
-		s.errorJSON(w, errors.New("could not find user profile"), http.StatusInternalServerError)
-		return
-	}
-
 	groupDB, err := s.db.GetGroupDB(groupID)
 	if err != nil {
 		s.errorJSON(w, err, http.StatusInternalServerError)
@@ -80,8 +75,8 @@ func (s *Server) handleAddRacer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Pass the user's AvatarURL (which is sql.NullString) directly.
-	newRacer, err := s.db.AddRacerToEvent(groupDB, eventID, adderID, payload.RacerName, newColor, user.AvatarURL)
+	// Do not set a default track avatar. Let the frontend's fallback logic handle it.
+	newRacer, err := s.db.AddRacerToEvent(groupDB, eventID, adderID, payload.RacerName, newColor, sql.NullString{})
 	if err != nil {
 		s.errorJSON(w, errors.New("failed to add racer to event"), http.StatusInternalServerError)
 		return
@@ -181,13 +176,49 @@ func (s *Server) handleUpdateRacerAvatar(w http.ResponseWriter, r *http.Request)
 
 	racerID, _ := strconv.ParseInt(chi.URLParam(r, "racerID"), 10, 64)
 
-	var payload struct {
-		AvatarURL string `json:"avatarUrl"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		s.errorJSON(w, errors.New("invalid request body"), http.StatusBadRequest)
+	// --- 1. Handle File Upload ---
+	// Set a max file size (e.g., 5MB)
+	r.Body = http.MaxBytesReader(w, r.Body, 5<<20)
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		s.errorJSON(w, errors.New("file is too large (max 5MB)"), http.StatusBadRequest)
 		return
 	}
+
+	file, header, err := r.FormFile("avatar")
+	if err != nil {
+		s.errorJSON(w, errors.New("invalid file upload: 'avatar' field is missing"), http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// --- 2. Store the File ---
+	// Create a unique filename to prevent collisions.
+	ext := filepath.Ext(header.Filename)
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif" {
+		s.errorJSON(w, errors.New("invalid file type: only jpg, png, gif are allowed"), http.StatusBadRequest)
+		return
+	}
+	newFileName := fmt.Sprintf("racer_avatar_%d_%d%s", racerID, time.Now().UnixNano(), ext)
+	// This assumes you have a publicly served directory for avatars.
+	// Ensure `s.config.AvatarPath` is configured and the directory exists.
+	newFilePath := filepath.Join(s.config.AvatarPath, newFileName)
+
+	dst, err := os.Create(newFilePath)
+	if err != nil {
+		s.errorJSON(w, errors.New("could not save file"), http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		s.errorJSON(w, errors.New("could not write file to disk"), http.StatusInternalServerError)
+		return
+	}
+
+	// --- 3. Update Database Record ---
+	// Construct the public URL for the saved file.
+	// This assumes your public avatar directory is served at `/public/avatars`.
+	publicAvatarURL := fmt.Sprintf("/public/avatars/%s", newFileName)
 
 	groupDB, err := s.db.GetGroupDB(groupID)
 	if err != nil {
@@ -196,13 +227,16 @@ func (s *Server) handleUpdateRacerAvatar(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Update the racer's avatar URL in the database.
-	// We'll need to add this `UpdateRacerAvatar` method to the database layer.
-	if err := s.db.UpdateRacerAvatar(groupDB, racerID, payload.AvatarURL); err != nil {
+	if err := s.db.UpdateRacerAvatar(groupDB, racerID, publicAvatarURL); err != nil {
+		os.Remove(newFilePath) // Attempt to clean up the file if DB update fails.
 		s.errorJSON(w, err, http.StatusInternalServerError)
 		return
 	}
 
-	s.writeJSON(w, http.StatusOK, envelope{"message": "Racer avatar updated successfully"})
+	s.writeJSON(w, http.StatusOK, envelope{
+		"message":   "Racer avatar updated successfully",
+		"avatarUrl": publicAvatarURL,
+	})
 }
 
 // handleDeleteRacer deletes a racer and their associated GPX file.

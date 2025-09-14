@@ -16,6 +16,7 @@ type Config struct {
 	DataPath    string
 	DbPath      string
 	GpxPath     string
+	AvatarPath  string
 	FrontendURL string
 
 	// --- Security ---
@@ -91,6 +92,7 @@ func New() (*Config, error) {
 
 	cfg.DbPath = filepath.Join(cfg.DataPath, "databases")
 	cfg.GpxPath = filepath.Join(cfg.DataPath, "gpx_files")
+	cfg.AvatarPath = filepath.Join(cfg.DataPath, "avatars")
 
 	return cfg, nil
 }

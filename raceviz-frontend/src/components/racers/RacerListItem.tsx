@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 
 // Import shared types
 import type { RaceEvent, Racer, UserProfile } from '../../types/index.ts';
@@ -6,6 +6,7 @@ import type { RaceEvent, Racer, UserProfile } from '../../types/index.ts';
 // Import services and hooks
 import { authenticatedFetch, updateRacerColor } from '../../services/api.ts';
 import { useToast } from '../../hooks/useToast.tsx';
+import { UserAvatar } from '../ui/UserAvatar.tsx';
 
 // Import component-specific styles
 import './RacerListItem.css';
@@ -20,6 +21,9 @@ interface RacerListItemProps {
 export const RacerListItem: React.FC<RacerListItemProps> = ({ racer, event, currentUser, onRacerChange }) => {
   // A ref to programmatically click the hidden file input element.
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState(racer.trackAvatarUrl);
+  const [isUploading, setIsUploading] = useState(false);
   const { addToast } = useToast();
 
   // --- Permissions Logic ---
@@ -80,9 +84,57 @@ export const RacerListItem: React.FC<RacerListItemProps> = ({ racer, event, curr
     }
   };
 
+  const handleAvatarClick = () => {
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+    setIsUploading(true);
+
+    try {
+      const response = await authenticatedFetch<{ avatarUrl: string }>(`/groups/${event.groupId}/events/${event.id}/racers/${racer.id}/avatar`, {
+        method: 'PUT',
+        body: formData,
+      });
+      addToast("Racer avatar updated!", 'success');
+      // Optimistically update the UI with the new URL from the response
+      setCurrentAvatarUrl(response.avatarUrl);
+      onRacerChange(); // Trigger a refresh in the parent component
+    } catch (error: any) {
+      addToast(`Failed to update avatar: ${error.message}`, 'error');
+    }
+    finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="racer-list-item">
       <div className="racer-identity">
+        <div className="racer-avatar-wrapper" onClick={handleAvatarClick} title="Change Racer Avatar">
+          <UserAvatar
+            avatarUrl={currentAvatarUrl}
+            name={racer.racerName}
+            className="racer-avatar"
+          />
+          <div className="edit-avatar-overlay">
+            {isUploading 
+              ? <div className="spinner"></div> 
+              : '✏️'}
+          </div>
+        </div>
+        <input
+          type="file"
+          ref={avatarInputRef}
+          onChange={handleAvatarFileChange}
+          style={{ display: 'none' }}
+          accept="image/png, image/jpeg, image/gif"
+        />
         <input
           type="color"
           className="racer-color-picker"

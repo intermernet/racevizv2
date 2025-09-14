@@ -43,17 +43,15 @@ export const EventList: React.FC<EventListProps> = ({ initialEvents, groupId, cu
       </div>
 
       {events.length > 0 ? (
-        <div className="events-grid">
+        <ul className="event-list">
           {events.map((event) => (
             <EventListItem 
               key={event.id} 
               event={event} 
-              onDelete={handleEventDeleted}
-              // --- PROP IS PASSED DOWN HERE ---
               currentUserId={currentUserId} 
             />
           ))}
-        </div>
+        </ul>
       ) : (
         <p className="no-events-message">This group has no events yet. Create the first one!</p>
       )}

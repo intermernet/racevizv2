@@ -54,7 +54,7 @@ type RacerResponse struct {
 	UploaderUserID int64   `json:"uploaderUserId"`
 	RacerName      string  `json:"racerName"`
 	TrackColor     string  `json:"trackColor"`
-	TrackAvatarURL *string `json:"trackAvatarUrl"`
+	TrackAvatarURL *string `json:"trackAvatarUrl,omitempty"`
 	GpxFilePath    *string `json:"gpxFilePath"`
 }
 
@@ -77,7 +77,7 @@ func toRacerResponse(racer *database.Racer) RacerResponse {
 		UploaderUserID: racer.UploaderUserID,
 		RacerName:      racer.RacerName,
 		TrackColor:     racer.TrackColor,
-		TrackAvatarURL: avatarURL,
+		TrackAvatarURL: avatarURL, // This was missing from the DTO struct
 		GpxFilePath:    gpxPath,
 	}
 }
@@ -101,6 +101,7 @@ type EventResponse struct {
 	EndDate       *string `json:"endDate"`   // Pointer to handle null
 	EventType     string  `json:"eventType"`
 	CreatorUserID int64   `json:"creatorUserId"`
+	HasGpxData    bool    `json:"hasGpxData"`
 }
 
 // toEventResponse is a "mapper" function that converts our internal database model
@@ -125,6 +126,7 @@ func toEventResponse(event *database.Event) EventResponse {
 		EndDate:       endDate,
 		EventType:     event.EventType,
 		CreatorUserID: event.CreatorUserID,
+		HasGpxData:    event.HasGpxData,
 	}
 }
 
