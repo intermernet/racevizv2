@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { RaceEvent } from '../../types';
 import { EventListItem } from './EventListItem.tsx';
 import { CreateEventModal } from './CreateEventModal.tsx';
-import { authenticatedFetch } from '../../services/api';
+//import { authenticatedFetch } from '../../services/api';
 import './EventList.css';
 
 interface EventListProps {
@@ -21,17 +21,17 @@ export const EventList: React.FC<EventListProps> = ({ initialEvents, groupId, cu
     setIsModalOpen(false);
   };
 
-  const handleEventDeleted = async (eventIdToDelete: number) => {
-    setEvents(events.filter(event => event.id !== eventIdToDelete));
-    try {
-      await authenticatedFetch(`/groups/${groupId}/events/${eventIdToDelete}`, {
-        method: 'DELETE',
-      });
-    } catch (error: any) {
-      alert(`Failed to delete event: ${error.message}`);
-      setEvents(initialEvents);
-    }
-  };
+  // const handleEventDeleted = async (eventIdToDelete: number) => {
+  //   setEvents(events.filter(event => event.id !== eventIdToDelete));
+  //   try {
+  //     await authenticatedFetch(`/groups/${groupId}/events/${eventIdToDelete}`, {
+  //       method: 'DELETE',
+  //     });
+  //   } catch (error: any) {
+  //     alert(`Failed to delete event: ${error.message}`);
+  //     setEvents(initialEvents);
+  //   }
+  // };
 
   return (
     <div className="event-list-container">
